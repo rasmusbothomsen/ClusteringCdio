@@ -249,7 +249,7 @@ def showImage(image):
 
 
 
-image = cv2.imread(r"DL_Photos\WIN_20230329_10_19_43_Pro.jpg")
+image = cv2.imread(r"C:\Users\rasmu\OneDrive\Billeder\Filmrulle\WIN_20230331_11_09_17_Pro.jpg")
 image = cv2.cvtColor(image,cv2.COLOR_RGB2BGR)
 image = scaleImage(image,80)
 image = convolutions(image)
