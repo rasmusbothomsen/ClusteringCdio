@@ -1,27 +1,43 @@
-from sklearn.cluster import KMeans
+
 import numpy as np
 from PIL import Image
 import cv2
 # Load the image
-image = np.array(Image.open('testImage2.jpg'))
+img = cv2.imread("testImage2.jpg")
 
 # Reshape the image for clustering
 
-h, w, d = image.shape
-pixels = np.reshape(image, (h*w, d))
+lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
 
-# Perform k-means clustering with k=8 (for example)
-kmeans = KMeans(n_clusters=8).fit(pixels)
+# Split the LAB channels
+l, a, b = cv2.split(lab)
 
-# Assign a color to each cluster (e.g. using the cluster centers)
-colors = kmeans.cluster_centers_.astype(int)
+# Create a CLAHE object and apply it to the L channel
+clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
+l_clahe = clahe.apply(l)
 
-# Assign each pixel to its corresponding cluster color
-labels = kmeans.predict(pixels)
-clustered_pixels = colors[labels]
+# Merge the CLAHE-adjusted L channel with the original A and B channels
+lab_clahe = cv2.merge((l_clahe, a, b))
 
-# Reshape the image back to its original shape
-clustered_image = np.reshape(clustered_pixels, (h, w, d))
+# Convert the LAB image back to RGB color space
+rgb_clahe = cv2.cvtColor(lab_clahe, cv2.COLOR_LAB2BGR)
 
-# Save the clustered image
-Image.fromarray(clustered_image.astype(np.uint8)).save('clustered_image.jpg')
+
+
+def scaleImage(image):
+    scale_percent = 20 # percent of original size
+    width = int(image.shape[1] * scale_percent / 100)
+    height = int(image.shape[0] * scale_percent / 100)
+    dim = (width, height)
+    
+    # resize image
+    resized = cv2.resize(image, dim, interpolation = cv2.INTER_AREA)
+    new_img_size = (resized.shape[1] - (resized.shape[1] % 32), resized.shape[0] - (resized.shape[0] % 32))
+    resized_img = cv2.resize(resized, new_img_size)
+    return resized_img
+
+# Display the original and contrast-adjusted images side-by-side
+printIMage =  scaleImage(rgb_clahe)
+cv2.imshow("Contrast-Adjusted Image",printIMage)
+cv2.waitKey(0)
+cv2.destroyAllWindows()

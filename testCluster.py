@@ -24,61 +24,69 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
     if iteration == total: 
         print()
 
-image = cv2.imread("testImage2.jpg")
 
-data = numpy.asarray(image)
 
-def imagePixelManipulate(img , threshold):
-    image = img
-    data = image
-    blue = [0,0,255]
-    red = [0,255,0]
-    green = [255,0,0]
-    colorList = [blue,red,green]
+def imagePixelManipulate(img, threshold, shadow_threshold=50, shadow_boost_factor=30):
+    image = img.copy()
+    data = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
     height, width, channels = image.shape
-    printProgressBar(0, height, prefix = 'Progress:', suffix = 'Complete', length = 50)
-    pixelList = numpy.array([data[0][0]])
-    indexList = [[0,0]]
+    printProgressBar(0, height, prefix='Progress:', suffix='Complete', length=50)
+    visited = numpy.zeros((height, width), dtype=bool)
     for y in range(height):
-        for x in range(1,width):
-            pixelValueMean = numpy.round(numpy.mean(pixelList, axis=0)).astype((numpy.uint8))
-            tempMean = numpy.copy(pixelValueMean)
-            tempMean[0][1] = 100
+        for x in range(width):
+            if not visited[y, x]:
+                pixelValueMean = numpy.round(numpy.median(data[y, x], axis=0)).astype(numpy.uint8)
+                
+                # Boost pixel values if they are below a certain threshold (for shadows)
+                if numpy.sum(data[y,x,0]) < shadow_threshold:
+                    data[y, x, 0] += shadow_boost_factor
+                    data[y, x, 1] += shadow_boost_factor*0.1
+                    data[y, x, 2] += shadow_boost_factor*0.1
 
-            pixel = data[y][x]
-            diff = abs(pixel-pixelValueMean)
-            if(numpy.sum(diff) <= threshold):
-                pixelList = numpy.append(pixelList,pixel)
-                indexList.append([y,x])
-            else:
-                for pixelIndex in indexList:
-                    if(numpy.sum(pixelValueMean)>10):
-                        data[pixelIndex[0],pixelIndex[1]] = pixelValueMean
-                pixelList = numpy.zeros((1,3))
-                indexList = []
-            
-        printProgressBar(y + 1, height, prefix = 'Progress:', suffix = 'Complete', length = 50)
+                queue = [(y, x)]
+                visited[y, x] = True
+                while queue:
+                    curr_y, curr_x = queue.pop(0)
+                    if numpy.sum(numpy.abs(data[curr_y, curr_x] - pixelValueMean)) <= threshold:
+                        data[curr_y, curr_x] = pixelValueMean
+                        for ny, nx in [(curr_y-1, curr_x), (curr_y+1, curr_x), (curr_y, curr_x-1), (curr_y, curr_x+1)]:
+                            if ny >= 0 and ny < height and nx >= 0 and nx < width and not visited[ny, nx]:
+                                queue.append((ny, nx))
+                                visited[ny, nx] = True
+        printProgressBar(y + 1, height, prefix='Progress:', suffix='Complete', length=50)
 
-    return data
-    
+    return cv2.cvtColor(data, cv2.COLOR_LAB2BGR)
 
 
 
-scale_percent = 10 # percent of original size
-width = int(image.shape[1] * scale_percent / 100)
-height = int(image.shape[0] * scale_percent / 100)
-dim = (width, height)
+# scale_percent = 40 # percent of original size
+# width = int(image.shape[1] * scale_percent / 100)
+# height = int(image.shape[0] * scale_percent / 100)
+# dim = (width, height)
   
-# resize image
-resized = cv2.resize(image, dim, interpolation = cv2.INTER_AREA)
-new_img_size = (resized.shape[1] - (resized.shape[1] % 32), resized.shape[0] - (resized.shape[0] % 32))
-resized_img = cv2.resize(resized, new_img_size)
+# # resize image
+# resized = cv2.resize(image, dim, interpolation = cv2.INTER_AREA)
+# new_img_size = (resized.shape[1] - (resized.shape[1] % 32), resized.shape[0] - (resized.shape[0] % 32))
+# resized_img = cv2.resize(resized, new_img_size)
+# lab = cv2.cvtColor(resized_img, cv2.COLOR_BGR2LAB)
 
+# # Split the LAB channels
+# l, a, b = cv2.split(lab)
 
-resized_img = imagePixelManipulate(resized_img,300)
+# # Create a CLAHE object and apply it to the L channel
+# clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
+# l_clahe = clahe.apply(l)
 
-cv2.imshow('image window', resized_img)
-# add wait key. window waits until user presses a key
-cv2.waitKey(0)
-# and finally destroy/close all open windows
-cv2.destroyAllWindows()
+# # Merge the CLAHE-adjusted L channel with the original A and B channels
+# lab_clahe = cv2.merge((l_clahe, a, b))
+
+# # Convert the LAB image back to RGB color space
+# rgb_clahe = cv2.cvtColor(lab_clahe, cv2.COLOR_LAB2BGR)
+
+# resized_img = imagePixelManipulate(rgb_clahe,200 , shadow_threshold=100, shadow_boost_factor=60)
+
+# cv2.imshow('image window', resized_img)
+# # add wait key. window waits until user presses a key
+# cv2.waitKey(0)
+# # and finally destroy/close all open windows
+# cv2.destroyAllWindows()
