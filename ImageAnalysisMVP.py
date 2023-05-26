@@ -252,11 +252,12 @@ def showImage(image):
 image = cv2.imread(r"C:\Users\rasmu\OneDrive\Billeder\Filmrulle\WIN_20230331_11_09_17_Pro.jpg")
 image = cv2.cvtColor(image,cv2.COLOR_RGB2BGR)
 image = scaleImage(image,80)
+image = k_means(image)
+
 image = convolutions(image)
 image = replace_outliers_with_surrounding_color(image, 60)
 #image = imagePixelManipulate2(image,100,0,0)
 image = cv2.fastNlMeansDenoisingColored(image,None,10,10,7,21)
-image = k_means(image)
 image = convolutions(image)
 
 
