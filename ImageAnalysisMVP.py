@@ -1,4 +1,6 @@
+import os
 import cv2
+from cv2 import Mat
 import numpy as np
 from RemoveOutliers import replace_outliers_with_surrounding_color
 
@@ -115,7 +117,7 @@ def k_means(image):
 
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 200, 0.2)
     k = 6
-    _, labels, (centers) = cv2.kmeans(pixel_values, k, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+    _, labels, (centers) = cv2.kmeans(pixel_values, k, None, criteria, 10, cv2.KMEANS_PP_CENTERS)
 
     centers = np.uint8(centers)
 
@@ -200,7 +202,7 @@ def findBoxes(image):
     return image, boxes
 
 
-def findCirclesAndBoxes(image):
+def findCirclesAndBoxes(image: Mat):
     img = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
     img_blur = cv2.medianBlur(img, 5)
@@ -216,7 +218,6 @@ def findCirclesAndBoxes(image):
     # Remove small boxes and sort the remaining boxes by area in descending order
     boxes = [cv2.boxPoints(cv2.minAreaRect(contour)).astype(int) for contour in contours if len(contour) >= 3 and cv2.contourArea(contour) > 100]
     boxes = sorted(boxes, key=cv2.contourArea, reverse=True)
-    
     # Remove circles that intersect with boxes
     if circles is not None:
         circles = np.round(circles[0, :]).astype("int")
@@ -236,8 +237,20 @@ def findCirclesAndBoxes(image):
         for box in boxes:
             cv2.drawContours(image, [box], 0, (0, 0, 255), 2)
     
-    return image
+   
+    return boxes, image
 
+def convert_to_yolo_format(image_width, image_height, box):
+    rect = cv2.minAreaRect(box)
+    points = cv2.boxPoints(rect)
+    x_min, y_min = np.min(points, axis=0)
+    x_max, y_max = np.max(points, axis=0)
+
+    x_center = (x_min + x_max) / (2 * image_width)
+    y_center = (y_min + y_max) / (2 * image_height)
+    width = (x_max - x_min) / image_width
+    height = (y_max - y_min) / image_height
+    return x_center, y_center, width, height
 
 
 
@@ -248,20 +261,56 @@ def showImage(image):
 
 
 
-
-image = cv2.imread(r"C:\Users\rasmu\OneDrive\Billeder\Filmrulle\WIN_20230331_11_09_17_Pro.jpg")
-image = cv2.cvtColor(image,cv2.COLOR_RGB2BGR)
-image = scaleImage(image,80)
-image = k_means(image)
-
-image = convolutions(image)
-image = replace_outliers_with_surrounding_color(image, 60)
-#image = imagePixelManipulate2(image,100,0,0)
-image = cv2.fastNlMeansDenoisingColored(image,None,10,10,7,21)
-image = convolutions(image)
+directory = "train_images"
+output_dir = "yolo_labels"  # Directory to save the YOLO labels
+imageTestDir = "outputimageTest"
+os.makedirs(output_dir, exist_ok=True)
+os.makedirs(imageTestDir, exist_ok=True)
 
 
-mask = image
+for fileName in os.listdir(directory):
+    filePath = os.path.join(directory,fileName)
+    outPath = os.path.join(imageTestDir,fileName)
+    print(filePath)
+    image = cv2.imread(filePath)
+    image = cv2.cvtColor(image,cv2.COLOR_RGB2BGR)
+    image = scaleImage(image,80)
+    image = k_means(image)
+
+    image = convolutions(image)
+    image = replace_outliers_with_surrounding_color(image, 60)
+    #image = imagePixelManipulate2(image,100,0,0)
+    image = cv2.fastNlMeansDenoisingColored(image,None,10,10,7,21)
+    image = convolutions(image)
+
+    h,w,c = image.shape
+    mask = image
+    boxes, imagebox = findCirclesAndBoxes(mask)
+    yolo_labels = list()
+
+    for  box in boxes:
+        label = convert_to_yolo_format(w,h,box)
+        yolo_labels.append(label)
+
+    showImage(imagebox)
+
+    
+    # with open(os.path.join(output_dir, f"{fileName[:-4]}.txt"), "w") as f:
+    #     for index, label in enumerate(yolo_labels):
+    #         x_center, y_center, width, height = label
+    #         if(index == len(yolo_labels)-1):
+    #             line = f"1 {x_center} {y_center} {width} {height}\n"
+    #         else:
+    #             line = f"0 {x_center} {y_center} {width} {height}\n"
+            
+    #         f.write(line)
+    # cv2.imwrite(outPath,imagebox)
+
+
+# showImage(findCirclesAndBoxes(mask))
+
+
+
 # opening_kernel_size = 2
 # closing_kernel_size = 10
 
@@ -276,4 +325,3 @@ mask = image
 # closed_mask = cv2.morphologyEx(opened_mask, cv2.MORPH_CLOSE, closing_kernel)
 
 # Display the original and closed masks side by side
-showImage(findCirclesAndBoxes(mask))
