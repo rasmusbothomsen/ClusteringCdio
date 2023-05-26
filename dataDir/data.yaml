@@ -1,0 +1,6 @@
+train: ../data/dataDir/train/images
+val: ../data/dataDir/Validate/images
+
+nc: 2
+names: ['balls', 'car']
+
