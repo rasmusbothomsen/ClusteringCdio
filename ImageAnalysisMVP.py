@@ -63,7 +63,7 @@ def scaleImage(image,scale):
     rgb_clahe = cv2.cvtColor(lab_clahe, cv2.COLOR_LAB2BGR)
     return rgb_clahe
 
-
+# Performs Convolutions on image
 def convolutions(image):
     kernel = np.array([
                         [0,-1,0],
@@ -121,7 +121,7 @@ def imagePixelManipulate2(img, threshold, shadow_threshold=50, shadow_boost_fact
 
     return cv2.cvtColor(data, cv2.COLOR_LAB2BGR)
 
-
+# This was only for testing
 def sklearnKulster(image):
     pixels = image.reshape(-1, 3)
 
@@ -184,14 +184,10 @@ def k_means(image, showClusters=False):
     # Gives criteria for when k-means should stop.
     # Set to 100 iterations or when the difference is less than 0.2.
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2)
-<<<<<<< HEAD
-    k = 3
-=======
 
     # Sets number of clusters to 9
     k = 9
     # Uses k-means algorithm. Returns label for each pixel and cluster centers.
->>>>>>> 257bab24af58cffd922635eafde6f29a57eb666d
     _, labels, (centers) = cv2.kmeans(pixel_values, k, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
 
     # Converts centers to uint8 datatype
@@ -232,35 +228,6 @@ def k_means(image, showClusters=False):
 
     return masked_image
 
-
-def unDistort(image):
-    focal_length = 13870.866142 # mm
-    image_width = 3024
-    image_height = 4032
-    principal_point = (image_width/2, image_height/2)
-    distortion_coefficients = np.array([-0.029, 0.144, 0.001, -0.002, 0.0])
-    fx = fy = focal_length * image_width / 36
-    camera_matrix = np.array([[fx, 0, principal_point[0]],
-                          [0, fy, principal_point[1]],
-                          [0, 0, 1]])
-
-    undistorted_img = cv2.undistort(image, camera_matrix, distortion_coefficients)
-    return undistorted_img
-
-
-def findObjects(image: Mat):
-    img = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
-    imgCon= img
-    edged = cv2.Canny(imgCon,30,100)
-    _, threshold = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)
-    contours, _ = cv2.findContours(threshold, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-    cv2.drawContours(imgCon,contours,-1,(0,255,0),3)
-
-    circles = cv2.HoughCircles(imgCon, cv2.HOUGH_GRADIENT, 1, 20, param1=100, param2=10, minRadius=10, maxRadius=15)
-    
-
-    print(len(contours))
-    return contours,circles
 
 
 
@@ -303,6 +270,7 @@ def findCirclesAndBoxes(image):
     
     return boxes, image
 
+#Calculates the relative pixel value
 def convert_to_yolo_format(image_width, image_height, box):
     rect = cv2.minAreaRect(box)
     points = cv2.boxPoints(rect)
@@ -325,35 +293,6 @@ def showImage(image):
 
 
 
-
-# image = cv2.imread(r"train_images\trainImage14.jpg")
-# image = cv2.cvtColor(image,cv2.COLOR_RGB2BGR)
-# image = scaleImage(image,80)
-# contours, circles = findObjects(image)
-# image = k_means(image)
-# image = convolutions(image)
-# image = replace_outliers_with_surrounding_color(image, 60)
-# # #image = imagePixelManipulate2(image,100,0,0)
-# image = cv2.fastNlMeansDenoisingColored(image,None,10,10,7,21)
-# # image = convolutions(image)
-
-
-# h,w,c = image.shape
-# mask = image
-
-# showImage(findCirclesAndBoxes(image))
-# if circles is not None:
-#     # convert the (x, y) coordinates and radius of the circles to integers
-#     circles = np.round(circles[0, :]).astype("int")
-#     # loop over the (x, y) coordinates and radius of the circles
-#     for (x, y, r) in circles:
-#         # draw the circle in the output image, then draw a rectangle
-#         # corresponding to the center of the circle
-#         if(image[y,x] != [0,0,0]).all():
-#          cv2.circle(image, (x, y), r, (0, 255, 0), 4)
-
-# #cv2.drawContours(image,contours,-1,(0,255,0),3)
-# showImage(image)
 
 
 
