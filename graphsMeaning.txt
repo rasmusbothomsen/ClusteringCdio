@@ -1,0 +1,23 @@
+Original Image:
+Display the original image before applying the K-means clustering.
+
+Segmented Image:
+Show the image after performing K-means clustering. This image will have the original colors replaced with the cluster center colors.
+
+Color Palette:
+Create a color palette by displaying the colors of the cluster centers. This will help visualize the dominant colors extracted from the image.
+
+Masked Image:
+Show the final result after applying a mask to the segmented image. The masked image will have only a specific cluster (color) enabled, while others will be set to black.
+
+Cluster Distribution:
+Display a bar plot or pie chart showing the distribution of pixels among different clusters. This will give an overview of how the image is divided into different color clusters.
+
+Cluster Centroids:
+Show the cluster centroids as individual color patches. This visualization can help understand the specific colors that represent each cluster.
+
+Clustered Pixels:
+Create a scatter plot where each pixel is represented by a point colored according to its cluster assignment. This can provide a visual representation of how pixels are grouped together based on color similarity.
+
+Color Histogram:
+Generate a histogram showing the frequency of different colors in the segmented image. This can help analyze the color distribution and identify dominant colors.

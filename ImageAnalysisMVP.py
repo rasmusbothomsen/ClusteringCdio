@@ -1,9 +1,17 @@
 import os
+import random
 import cv2
 from cv2 import Mat
 import numpy as np
 from RemoveOutliers import replace_outliers_with_surrounding_color
 from sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
+from scipy.cluster.hierarchy import dendrogram, linkage
+from skimage import morphology
+
+
+
+
 
 
 
@@ -135,16 +143,41 @@ def sklearnKulster(image):
 
     showImage(selected_pixels)
 
+def kmeans_dendrogram(image, k, sample_size):
+    np.random.seed(10)
+    pixel_values = image.reshape((-1, 3))
+    pixel_values = np.float32(pixel_values)
+
+    sample_indices = random.sample(range(len(pixel_values)), sample_size)
+    sampled_pixel_values = pixel_values[sample_indices]
+
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2)
+
+    _, labels, centers = cv2.kmeans(sampled_pixel_values, k, None, criteria, 20, cv2.KMEANS_RANDOM_CENTERS)
+    centers = np.uint8(centers)
+    labels = labels.flatten()
+
+    linked = linkage(sampled_pixel_values, method='average')
+    plt.figure(figsize=(10, 7))
+    dendrogram(linked, orientation='top', distance_sort='descending', show_leaf_counts=True)
+    plt.title('Dendrogram')
+    plt.xlabel('Samples')
+    plt.ylabel('Distance')
+    plt.show()
     
-def k_means(image):
-    np.random.seed(0)
+def k_means(image, showClusters=False):
+    
     newImage = image
+    # newImage = cv2.cvtColor(image,cv2.COLOR_RGB2GRAY)
+    # ret,thresh = cv2.threshold(newImage,140,255,cv2.THRESH_BINARY)
+    # cv2.normalize(thresh, None, 0, 1.0,cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+    # newImage = thresh
     pixel_values = newImage.reshape((-1,3))
     pixel_values = np.float32(pixel_values)
 
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2)
     k = 9
-    _, labels, (centers) = cv2.kmeans(pixel_values, k, None, criteria, 20, cv2.KMEANS_RANDOM_CENTERS)
+    _, labels, (centers) = cv2.kmeans(pixel_values, k, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
 
     centers = np.uint8(centers)
 
@@ -167,12 +200,18 @@ def k_means(image):
         if(maxCenter> maxMask):
             mask = x
             maxMask = maxCenter
+        if showClusters:
+            tmpimg = masked_image.copy()
+            tmpimg[labels != x] = [0,0,0]
+            tmpimg = tmpimg.reshape(newImage.shape)
+            showImage(tmpimg)
     
     
     masked_image[labels != mask] = [0,0,0]
     masked_image = masked_image.reshape(newImage.shape)
-
+    
     return masked_image
+
 
 def unDistort(image):
     focal_length = 13870.866142 # mm
@@ -341,16 +380,14 @@ def PrepareImages():
 
 
 def imageTest():
+    
     image = cv2.imread("DL_Photos\WIN_20230329_10_13_33_Pro.jpg")
     image = cv2.cvtColor(image,cv2.COLOR_RGB2BGR)
     image = scaleImage(image,80)
     image = convolutions(image)
     image = cv2.fastNlMeansDenoisingColored(image,None,10,10,7,21)
-    cv2.imwrite("Denoise.jpg",image)
-    image = k_means(image)
-    cv2.imwrite("kmeansImg.jpg",image)
+    image = k_means(image, True)
     image = replace_outliers_with_surrounding_color(image, 60)
-    cv2.imwrite("replaceOutliers.jpg",image)
     image = convolutions(image)
 
     h,w,c = image.shape
@@ -359,4 +396,18 @@ def imageTest():
     showImage(image)
 
 
-imageTest()
+def DendoGram():
+    image = cv2.imread("DL_Photos\WIN_20230329_10_13_33_Pro.jpg")
+    image = scaleImage(image,80)
+    image = k_means(image)
+    showImage(image)
+
+image = cv2.imread("DL_Photos\WIN_20230329_10_13_33_Pro.jpg",0)
+edges = cv2.Canny(image, threshold1=30, threshold2=100)
+
+# Display the original image and the detected edges
+plt.subplot(121), plt.imshow(image, cmap='gray')
+plt.title('Original Image'), plt.xticks([]), plt.yticks([])
+plt.subplot(122), plt.imshow(edges, cmap='gray')
+plt.title('Edge Detection'), plt.xticks([]), plt.yticks([])
+plt.show()
