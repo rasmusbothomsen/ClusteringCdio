@@ -10,10 +10,6 @@ from skimage import morphology
 
 
 
-
-
-
-
 def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
     """
     Call in a loop to create terminal progress bar
@@ -164,13 +160,14 @@ def kmeans_dendrogram(image, k, sample_size):
     plt.ylabel('Distance')
     plt.show()
 
-def k_means(image):
+
+def k_means(image, showClusters=False):
     # Sets random seed to 0 to generate the same sequence
     np.random.seed(0)
-def k_means(image, showClusters=False):
 
     newImage = image
     newImage = scaleImage(image, 80)
+
     # newImage = cv2.cvtColor(image,cv2.COLOR_RGB2GRAY)
     # ret,thresh = cv2.threshold(newImage,140,255,cv2.THRESH_BINARY)
     # cv2.normalize(thresh, None, 0, 1.0,cv2.NORM_MINMAX, dtype=cv2.CV_32F)
@@ -184,14 +181,11 @@ def k_means(image, showClusters=False):
     # Gives criteria for when k-means should stop.
     # Set to 100 iterations or when the difference is less than 0.2.
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2)
-<<<<<<< HEAD
     k = 3
-=======
 
     # Sets number of clusters to 9
     k = 9
     # Uses k-means algorithm. Returns label for each pixel and cluster centers.
->>>>>>> 257bab24af58cffd922635eafde6f29a57eb666d
     _, labels, (centers) = cv2.kmeans(pixel_values, k, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
 
     # Converts centers to uint8 datatype
