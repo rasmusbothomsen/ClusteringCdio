@@ -164,36 +164,51 @@ def kmeans_dendrogram(image, k, sample_size):
     plt.xlabel('Samples')
     plt.ylabel('Distance')
     plt.show()
-    
+
+def k_means(image):
+    # Sets random seed to 0 to generate the same sequence
+    np.random.seed(0)
 def k_means(image, showClusters=False):
-    
+
     newImage = image
     # newImage = cv2.cvtColor(image,cv2.COLOR_RGB2GRAY)
     # ret,thresh = cv2.threshold(newImage,140,255,cv2.THRESH_BINARY)
     # cv2.normalize(thresh, None, 0, 1.0,cv2.NORM_MINMAX, dtype=cv2.CV_32F)
     # newImage = thresh
+
+    # Reshapes image into 2D array
     pixel_values = newImage.reshape((-1,3))
+    # Converts pixel values to float32 datatype
     pixel_values = np.float32(pixel_values)
 
+    # Gives criteria for when k-means should stop.
+    # Set to 100 iterations or when the difference is less than 0.2.
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2)
+
+    # Sets number of clusters to 9
     k = 9
+    # Uses k-means algorithm. Returns label for each pixel and cluster centers.
     _, labels, (centers) = cv2.kmeans(pixel_values, k, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
 
+    # Converts centers to uint8 datatype
     centers = np.uint8(centers)
-
-    # flatten the labels array
+    # Flatten labels array to 1D array
     labels = labels.flatten()
 
+    # Creates segmented image where each pixel is assigned a cluster.
     segmented_image = centers[labels.flatten()]
+    # Reshapes image into its previous shape
     segmented_image = segmented_image.reshape(newImage.shape)
 
-
+    # Creates copy of segmented image.
     masked_image = np.copy(segmented_image)
-    # convert to the shape of a vector of pixel values
+    # Reshapes image into 2D array.
     masked_image = masked_image.reshape((-1, 3))
     # color (i.e cluster) to disable
 
+    # Finds cluster containing the white elements.
     maxMask = 0.0
+    # Index for cluster containing balls.
     mask = 0
     for x in range(k):
         maxCenter = np.max(centers[x])
@@ -205,11 +220,12 @@ def k_means(image, showClusters=False):
             tmpimg[labels != x] = [0,0,0]
             tmpimg = tmpimg.reshape(newImage.shape)
             showImage(tmpimg)
-    
-    
+
+    # Makes all other clusters black
     masked_image[labels != mask] = [0,0,0]
+    # Reshapes image back.
     masked_image = masked_image.reshape(newImage.shape)
-    
+
     return masked_image
 
 
@@ -380,7 +396,7 @@ def PrepareImages():
 
 
 def imageTest():
-    
+
     image = cv2.imread("DL_Photos\WIN_20230329_10_13_33_Pro.jpg")
     image = cv2.cvtColor(image,cv2.COLOR_RGB2BGR)
     image = scaleImage(image,80)
