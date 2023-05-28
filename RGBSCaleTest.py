@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 from RemoveOutliers import replace_outliers_with_surrounding_color
-from testCluster import imagePixelManipulate as PM
+from ImagePixelManipulateTest import imagePixelManipulate as PM
 import matplotlib as plt
 
 def imagePixelManipulate(img, threshold, shadow_threshold=50, shadow_boost_factor=30):

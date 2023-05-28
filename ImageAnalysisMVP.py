@@ -8,7 +8,8 @@ import matplotlib.pyplot as plt
 from scipy.cluster.hierarchy import dendrogram, linkage
 from skimage import morphology
 
-
+#   Rasmus Bo Thomsen  S211708                    Mathilde Shalimon Elia S215811
+                                                                                                  
 
 def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
     """

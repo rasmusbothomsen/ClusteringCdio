@@ -3,6 +3,9 @@ import matplotlib.pyplot as plt
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics import silhouette_score
 import cv2
+
+#   Rasmus Bo Thomsen  S211708                    Mathilde Shalimon Elia S215811
+
 def scaleImage(image, scale_percent):
     width = int(image.shape[1] * scale_percent / 100)
     height = int(image.shape[0] * scale_percent / 100)

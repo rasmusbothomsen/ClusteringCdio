@@ -1,6 +1,9 @@
 import cv2
 import numpy as np
-from testCluster import printProgressBar
+from ImagePixelManipulateTest import printProgressBar
+
+#   Rasmus Bo Thomsen  S211708                    Mathilde Shalimon Elia S215811
+
 
 def replace_outliers_with_surrounding_color(img, threshold):
     # Convert image to LAB color space

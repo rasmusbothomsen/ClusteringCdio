@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import numpy as np
 
+#   Rasmus Bo Thomsen  S211708                    Mathilde Shalimon Elia S215811
 
 def scaleImage(image, scale_percent):
     width = int(image.shape[1] * scale_percent / 100)
@@ -25,7 +26,7 @@ def scaleImage(image, scale_percent):
 
 # Load the image
 image = plt.imread("DL_Photos\WIN_20230329_10_13_33_Pro.jpg") 
-image = scaleImage(image, 30)
+image = scaleImage(image, 10)
 X =  image.reshape((-1,3))
 range_n_clusters = range(9,14)
 
