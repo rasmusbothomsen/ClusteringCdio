@@ -149,7 +149,7 @@ def kmeans_dendrogram(image, k, sample_size):
     pixel_values = np.float32(pixel_values)
 
     sample_indices = random.sample(range(len(pixel_values)), sample_size)
-    sampled_pixel_values = pixel_values[sample_indices]
+    sampled_pixel_values = pixel_values
 
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2)
 
@@ -176,7 +176,7 @@ def k_means(image, showClusters=False):
     pixel_values = np.float32(pixel_values)
 
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2)
-    k = 9
+    k = 3
     _, labels, (centers) = cv2.kmeans(pixel_values, k, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
 
     centers = np.uint8(centers)
@@ -398,16 +398,9 @@ def imageTest():
 
 def DendoGram():
     image = cv2.imread("DL_Photos\WIN_20230329_10_13_33_Pro.jpg")
-    image = scaleImage(image,80)
-    image = k_means(image)
+    image = scaleImage(image,10)
+    image = kmeans_dendrogram(image,9,0)
     showImage(image)
 
-image = cv2.imread("DL_Photos\WIN_20230329_10_13_33_Pro.jpg",0)
-edges = cv2.Canny(image, threshold1=30, threshold2=100)
+DendoGram()
 
-# Display the original image and the detected edges
-plt.subplot(121), plt.imshow(image, cmap='gray')
-plt.title('Original Image'), plt.xticks([]), plt.yticks([])
-plt.subplot(122), plt.imshow(edges, cmap='gray')
-plt.title('Edge Detection'), plt.xticks([]), plt.yticks([])
-plt.show()

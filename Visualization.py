@@ -11,6 +11,12 @@ from skimage import morphology
 from sklearn.metrics import silhouette_samples
 from skimage.segmentation import mark_boundaries
 
+
+
+def setImageVariables(image):
+    global masked_image,centers,labels,pixel_values,segmented_image
+    masked_image,centers,labels,pixel_values,segmented_image = k_means(image)
+
 def k_means(image, showClusters=False):
     
     newImage = image
@@ -87,7 +93,6 @@ def kmeans_dendrogram(image, k, sample_size):
 
 
 def kMeansVisualization(image):
-    masked_image,centers,labels,pixel_values,segmented_image = k_means(image)
 
     # Create meaningful graphs
     plt.figure(figsize=(10, 6))
@@ -122,10 +127,6 @@ def kMeansVisualization(image):
 
 def clusterVisualization(image):
     image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-    # Apply K-means clustering
-    masked_image,centers,labels,pixel_values,segmented_image = k_means(image_rgb)
-
 
     # Create meaningful graphs
     plt.figure(figsize=(12, 10))
@@ -185,7 +186,6 @@ def clusterVisualization(image):
 
 
 def ColorDistibutionCompare(image):
-    masked_image,centers,labels,pixel_values,segmented_image = k_means(image)
 
     original_hist, _ = np.histogram(image.reshape(-1, 3), bins=256, range=[0, 255])
 
@@ -202,7 +202,6 @@ def ColorDistibutionCompare(image):
     plt.show()
 
 def ClusterBoundaries(image):
-    masked_image,centers,labels,pixel_values,segmented_image = k_means(image)
 
     boundaries_image = mark_boundaries(image, labels.reshape(image.shape[:2]), color=(0, 0, 0), outline_color=(1, 1, 1))
 
@@ -212,9 +211,33 @@ def ClusterBoundaries(image):
     plt.axis('off')
     plt.show()
 
+
+def Colormapping(image):
+    color_mapped_image = cv2.applyColorMap(image, cv2.COLORMAP_JET)
+
+    # Convert the color mapped image from BGR to RGB
+    color_mapped_image_rgb = cv2.cvtColor(color_mapped_image, cv2.COLOR_BGR2RGB)
+
+    # Display the color mapped image
+    plt.imshow(color_mapped_image_rgb)
+    plt.axis('off')
+    plt.title('Color Mapped Image')
+    plt.show()
+def ClusterPixelcount(image):
+    cluster_counts = np.bincount(labels)
+    # Plot the pixel counts for each cluster
+    plt.bar(range(len(cluster_counts)), cluster_counts)
+    plt.title('Cluster Pixel Counts')
+    plt.xlabel('Cluster')
+    plt.ylabel('Pixel Count')
+    plt.show()
+
 def main():
     image = cv2.imread("DL_Photos\WIN_20230329_10_13_33_Pro.jpg")
-    ClusterBoundaries(image)
+    #setImageVariables(image)
+
+
+    Colormapping(image)
 
 if __name__ == "__main__":
     main()
