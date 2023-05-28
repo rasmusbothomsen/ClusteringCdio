@@ -1,7 +1,6 @@
 import os
 import random
 import cv2
-from cv2 import Mat
 import numpy as np
 from RemoveOutliers import replace_outliers_with_surrounding_color
 from sklearn.cluster import KMeans
@@ -171,6 +170,7 @@ def k_means(image):
 def k_means(image, showClusters=False):
 
     newImage = image
+    newImage = scaleImage(image, 80)
     # newImage = cv2.cvtColor(image,cv2.COLOR_RGB2GRAY)
     # ret,thresh = cv2.threshold(newImage,140,255,cv2.THRESH_BINARY)
     # cv2.normalize(thresh, None, 0, 1.0,cv2.NORM_MINMAX, dtype=cv2.CV_32F)
@@ -244,7 +244,7 @@ def unDistort(image):
     return undistorted_img
 
 
-def findObjects(image: Mat):
+def findObjects(image):
     img = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
     imgCon= img
     edged = cv2.Canny(imgCon,30,100)
@@ -260,25 +260,27 @@ def findObjects(image: Mat):
 
 
 
-# Draw the filtered contours on the image
 def findCirclesAndBoxes(image):
+
+    # Converts image from BGR to grascale
     img = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
+    # Reduces noice by blurring image
     img_blur = cv2.medianBlur(img, 5)
 
-    # Detect circles using HoughCircles function
+    # HoughCircles is used to find circles in the image.
     circles = cv2.HoughCircles(img_blur, cv2.HOUGH_GRADIENT, 1, 20, param1=100, param2=10, minRadius=10, maxRadius=15)
 
-    # Find boxes using Canny edge detection and contour detection
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    edged = cv2.Canny(gray, 30, 200)
+    # Finds edges.
+    edged = cv2.Canny(img_blur, 30, 200)
+    # Finds contours.
     contours, _ = cv2.findContours(edged, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
-    # Remove small boxes and sort the remaining boxes by area in descending order
+    # Removes small contours and sort the remaining based on area.
     boxes = [cv2.boxPoints(cv2.minAreaRect(contour)).astype(int) for contour in contours if len(contour) >= 3 and cv2.contourArea(contour) > 100]
     boxes = sorted(boxes, key=cv2.contourArea, reverse=True)
-    
-    # Remove circles that intersect with boxes
+
+    # If circles and boxes overlap - remove circles
     if circles is not None:
         circles = np.round(circles[0, :]).astype("int")
         for (x, y, r) in circles:
@@ -289,7 +291,7 @@ def findCirclesAndBoxes(image):
                     circles = np.delete(circles, np.where((circles == [x, y, r]).all(axis=1))[0], axis=0)
                     break
 
-    # Draw remaining circles and boxes on the original image
+    # Add remaining circles and boxes on the original image
     if circles is not None:
         for (x, y, r) in circles:
             cv2.circle(image, (x, y), r, (0, 0, 255), 2)
