@@ -3,6 +3,7 @@ import cv2
 from cv2 import Mat
 import numpy as np
 from RemoveOutliers import replace_outliers_with_surrounding_color
+from sklearn.cluster import KMeans
 
 
 
@@ -56,7 +57,11 @@ def scaleImage(image,scale):
 
 
 def convolutions(image):
-    kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
+    kernel = np.array([
+                        [0,-1,0],
+                        [-1,5,-1],
+                        [0,-1,0]]
+                        )
     resized_img =  cv2.filter2D(image, -1, kernel)
     return resized_img
 
@@ -88,7 +93,6 @@ def imagePixelManipulate2(img, threshold, shadow_threshold=50, shadow_boost_fact
         for x in range(width):
             if not visited[y, x]:
                 pixelValueMean = np.round(np.median(data[y, x], axis=0)).astype(np.uint8)
-                
                 # Boost pixel values if they are below a certain threshold (for shadows)
                 if np.sum(data[y,x,0]) < shadow_threshold:
                     data[y, x, 0] += shadow_boost_factor
@@ -109,15 +113,38 @@ def imagePixelManipulate2(img, threshold, shadow_threshold=50, shadow_boost_fact
 
     return cv2.cvtColor(data, cv2.COLOR_LAB2BGR)
 
+
+def sklearnKulster(image):
+    pixels = image.reshape(-1, 3)
+
+    # Perform K-means clustering
+    n_clusters = 6  # Specify the number of clusters
+    kmeans = KMeans(n_clusters=n_clusters,random_state=0,n_init="auto")
+    kmeans.fit(pixels)
+    kmeans.predict(pixels)
+    kmeans.get_params(deep=True)
+    labels = kmeans.labels_
+   
+    selected_cluster = 4  # Adjust this to the desired cluster index
+
+# Filter the labels to keep only the selected cluster
+    selected_labels = np.where(labels == selected_cluster, 255, 0).astype(np.uint8)
+
+# Reshape the labels to the original image shape
+    selected_pixels = selected_labels.reshape(image.shape[:2])
+
+    showImage(selected_pixels)
+
+    
 def k_means(image):
     np.random.seed(0)
     newImage = image
     pixel_values = newImage.reshape((-1,3))
     pixel_values = np.float32(pixel_values)
 
-    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 200, 0.2)
-    k = 6
-    _, labels, (centers) = cv2.kmeans(pixel_values, k, None, criteria, 10, cv2.KMEANS_PP_CENTERS)
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2)
+    k = 9
+    _, labels, (centers) = cv2.kmeans(pixel_values, k, None, criteria, 20, cv2.KMEANS_RANDOM_CENTERS)
 
     centers = np.uint8(centers)
 
@@ -141,9 +168,8 @@ def k_means(image):
             mask = x
             maxMask = maxCenter
     
+    
     masked_image[labels != mask] = [0,0,0]
-
-
     masked_image = masked_image.reshape(newImage.shape)
 
     return masked_image
@@ -163,46 +189,24 @@ def unDistort(image):
     return undistorted_img
 
 
-def findCircles(image):
+def findObjects(image: Mat):
     img = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
-    image = image
+    imgCon= img
+    edged = cv2.Canny(imgCon,30,100)
+    _, threshold = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)
+    contours, _ = cv2.findContours(threshold, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    cv2.drawContours(imgCon,contours,-1,(0,255,0),3)
 
-    img_blur = cv2.medianBlur(img, 5)
-
-    # Detect circles using HoughCircles function
-    circles = cv2.HoughCircles(img_blur, cv2.HOUGH_GRADIENT, 1, 20, param1=100, param2=10, minRadius=10, maxRadius=15)
-
-    # Draw detected circles on the original image
-    if circles is not None:
-        circles = np.round(circles[0, :]).astype("int")
-        for (x, y, r) in circles:
-            cv2.circle(image, (x, y), r, (0, 0, 255), 2)
-
-
-    print(circles)
-    return image
-
-def findBoxes(image):
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    edged = cv2.Canny(gray, 30, 200)
-    contours, _ = cv2.findContours(edged, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    circles = cv2.HoughCircles(imgCon, cv2.HOUGH_GRADIENT, 1, 20, param1=100, param2=10, minRadius=10, maxRadius=15)
     
-    boxes = []
-    for contour in contours:
-        area = cv2.contourArea(contour)
-        if area > 100:
-            rect = cv2.minAreaRect(contour)
-            box = cv2.boxPoints(rect)
-            box = np.intp(box)
-            boxes.append(box)
-            cv2.drawContours(image, [box], 0, (0, 0, 255), 2)
-    
-    # sort boxes by area, smallest to largest
-    boxes = sorted(boxes, key=cv2.contourArea)
-    return image, boxes
+
+    print(len(contours))
+    return contours,circles
 
 
-def findCirclesAndBoxes(image: Mat):
+
+# Draw the filtered contours on the image
+def findCirclesAndBoxes(image):
     img = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
     img_blur = cv2.medianBlur(img, 5)
@@ -218,6 +222,7 @@ def findCirclesAndBoxes(image: Mat):
     # Remove small boxes and sort the remaining boxes by area in descending order
     boxes = [cv2.boxPoints(cv2.minAreaRect(contour)).astype(int) for contour in contours if len(contour) >= 3 and cv2.contourArea(contour) > 100]
     boxes = sorted(boxes, key=cv2.contourArea, reverse=True)
+    
     # Remove circles that intersect with boxes
     if circles is not None:
         circles = np.round(circles[0, :]).astype("int")
@@ -237,7 +242,6 @@ def findCirclesAndBoxes(image: Mat):
         for box in boxes:
             cv2.drawContours(image, [box], 0, (0, 0, 255), 2)
     
-   
     return boxes, image
 
 def convert_to_yolo_format(image_width, image_height, box):
@@ -261,67 +265,98 @@ def showImage(image):
 
 
 
-directory = "train_images"
-output_dir = "yolo_labels"  # Directory to save the YOLO labels
-imageTestDir = "outputimageTest"
-os.makedirs(output_dir, exist_ok=True)
-os.makedirs(imageTestDir, exist_ok=True)
 
 
-for fileName in os.listdir(directory):
-    filePath = os.path.join(directory,fileName)
-    outPath = os.path.join(imageTestDir,fileName)
-    print(filePath)
-    image = cv2.imread(filePath)
+# image = cv2.imread(r"train_images\trainImage14.jpg")
+# image = cv2.cvtColor(image,cv2.COLOR_RGB2BGR)
+# image = scaleImage(image,80)
+# contours, circles = findObjects(image)
+# image = k_means(image)
+# image = convolutions(image)
+# image = replace_outliers_with_surrounding_color(image, 60)
+# # #image = imagePixelManipulate2(image,100,0,0)
+# image = cv2.fastNlMeansDenoisingColored(image,None,10,10,7,21)
+# # image = convolutions(image)
+
+
+# h,w,c = image.shape
+# mask = image
+
+# showImage(findCirclesAndBoxes(image))
+# if circles is not None:
+#     # convert the (x, y) coordinates and radius of the circles to integers
+#     circles = np.round(circles[0, :]).astype("int")
+#     # loop over the (x, y) coordinates and radius of the circles
+#     for (x, y, r) in circles:
+#         # draw the circle in the output image, then draw a rectangle
+#         # corresponding to the center of the circle
+#         if(image[y,x] != [0,0,0]).all():
+#          cv2.circle(image, (x, y), r, (0, 255, 0), 4)
+
+# #cv2.drawContours(image,contours,-1,(0,255,0),3)
+# showImage(image)
+
+
+
+def PrepareImages():
+    directory = "train_images"
+    output_dir = "yolo_labels"  # Directory to save the YOLO labels
+    imageTestDir = "outputimageTest"
+    os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(imageTestDir, exist_ok=True)
+    for fileName in os.listdir(directory):
+        filePath = os.path.join(directory,fileName)
+        outPath = os.path.join(imageTestDir,fileName)
+        print(filePath)
+        image = cv2.imread(filePath)
+        image = cv2.cvtColor(image,cv2.COLOR_RGB2BGR)
+        image = scaleImage(image,80)
+        image = k_means(image)
+
+        image = convolutions(image)
+        image = replace_outliers_with_surrounding_color(image, 60)
+        #image = imagePixelManipulate2(image,100,0,0)
+        image = cv2.fastNlMeansDenoisingColored(image,None,10,10,7,21)
+        image = convolutions(image)
+
+        h,w,c = image.shape
+        mask = image
+        boxes, imagebox = findCirclesAndBoxes(mask)
+        yolo_labels = list()
+
+        for  box in boxes:
+            label = convert_to_yolo_format(w,h,box)
+            yolo_labels.append(label)
+
+        with open(os.path.join(output_dir, f"{fileName[:-4]}.txt"), "w") as f:
+            for index, label in enumerate(yolo_labels):
+                x_center, y_center, width, height = label
+                if(index == len(yolo_labels)-1):
+                    line = f"1 {x_center} {y_center} {width} {height}\n"
+                else:
+                    line = f"0 {x_center} {y_center} {width} {height}\n"
+                
+                f.write(line)
+        cv2.imwrite(outPath,imagebox)
+
+
+def imageTest():
+    image = cv2.imread("DL_Photos\WIN_20230329_10_13_33_Pro.jpg")
     image = cv2.cvtColor(image,cv2.COLOR_RGB2BGR)
     image = scaleImage(image,80)
-    image = k_means(image)
-
     image = convolutions(image)
-    image = replace_outliers_with_surrounding_color(image, 60)
-    #image = imagePixelManipulate2(image,100,0,0)
     image = cv2.fastNlMeansDenoisingColored(image,None,10,10,7,21)
+    cv2.imwrite("Denoise.jpg",image)
+    image = k_means(image)
+    cv2.imwrite("kmeansImg.jpg",image)
+    image = replace_outliers_with_surrounding_color(image, 60)
+    cv2.imwrite("replaceOutliers.jpg",image)
     image = convolutions(image)
 
     h,w,c = image.shape
     mask = image
     boxes, imagebox = findCirclesAndBoxes(mask)
-    yolo_labels = list()
-
-    for  box in boxes:
-        label = convert_to_yolo_format(w,h,box)
-        yolo_labels.append(label)
-
-    showImage(imagebox)
-
-    
-    # with open(os.path.join(output_dir, f"{fileName[:-4]}.txt"), "w") as f:
-    #     for index, label in enumerate(yolo_labels):
-    #         x_center, y_center, width, height = label
-    #         if(index == len(yolo_labels)-1):
-    #             line = f"1 {x_center} {y_center} {width} {height}\n"
-    #         else:
-    #             line = f"0 {x_center} {y_center} {width} {height}\n"
-            
-    #         f.write(line)
-    # cv2.imwrite(outPath,imagebox)
+    showImage(image)
 
 
-# showImage(findCirclesAndBoxes(mask))
-
-
-
-# opening_kernel_size = 2
-# closing_kernel_size = 10
-
-# # Create rectangular kernels for opening and closing
-# opening_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (opening_kernel_size, opening_kernel_size))
-# closing_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (closing_kernel_size, closing_kernel_size))
-
-# # Perform opening to remove stray pixels
-# opened_mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, opening_kernel)
-
-# # Perform closing to fill in gaps
-# closed_mask = cv2.morphologyEx(opened_mask, cv2.MORPH_CLOSE, closing_kernel)
-
-# Display the original and closed masks side by side
+imageTest()
